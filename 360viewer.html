@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>360 Video Player</title>
@@ -10,10 +11,10 @@
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://unpkg.com" crossorigin>
 
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       height: 100%;
@@ -25,14 +26,15 @@
 
     #ui {
       position: absolute;
-      top: 58px; /* 48px nav + 10px spacing */
+      top: 58px;
+      /* 48px nav + 10px spacing */
       left: 10px;
       right: 10px;
       z-index: 10;
       display: flex;
       gap: 8px;
       align-items: center;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0, 0, 0, 0.6);
       padding: 8px 10px;
       border-radius: 6px;
       backdrop-filter: blur(6px);
@@ -79,7 +81,7 @@
       right: 10px;
       z-index: 10;
       padding: 6px 10px;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0, 0, 0, 0.6);
       border-radius: 6px;
       font-size: 12px;
       max-height: 90px;
@@ -93,6 +95,8 @@
       top: 0;
       left: 0;
       display: block;
+      touch-action: none;
+      /* important for pointer interactions on mobile */
     }
 
     /* Debug video overlay (toggleable) */
@@ -125,6 +129,12 @@
       box-sizing: border-box;
     }
 
+    /* When active, make it clickable/interactive so we don't flicker */
+    #dropOverlay.active {
+      display: flex;
+      pointer-events: all;
+    }
+
     /* Global nav bar */
     #globalNav {
       position: fixed;
@@ -137,7 +147,7 @@
       align-items: center;
       gap: 10px;
       padding: 0 12px;
-      background: rgba(0,0,0,0.75);
+      background: rgba(0, 0, 0, 0.75);
       border-bottom: 1px solid #222;
       backdrop-filter: blur(6px);
     }
@@ -164,19 +174,16 @@
     }
   </style>
 </head>
-<body>
 
-  <!-- Global Navigation Bar -->
+<body>
   <div id="globalNav">
     <a href="./index.html" class="navBtn">Home</a>
     <a href="./360viewer.html" class="navBtn">360 Video Player</a>
   </div>
+
   <div id="ui">
-    <input
-      id="streamUrl"
-      type="text"
-      placeholder="Paste stream or page URL here (https://...m3u8, .mp4, or page with .m3u8)"
-    />
+    <input id="streamUrl" type="text"
+      placeholder="Paste stream or page URL here (https://...m3u8, .mp4, or page with .m3u8)" />
     <button id="loadBtn">Load</button>
     <label id="debugToggleLabel">
       <input type="checkbox" id="debugToggle" checked />
@@ -185,39 +192,32 @@
   </div>
 
   <div id="dropOverlay">
-    Drop a file here:<br/>
-    - Video file (MP4/WebM) to play locally<br/>
+    Drop a file here:<br />
+    - Video file (MP4/WebM) to play locally<br />
     - Text/HTML/HAR file containing a https://...m3u8 URL
   </div>
 
   <div id="status">Ready.</div>
 
-  <!-- Debug / source video (same one used for the 360 texture) -->
-  <video id="sourceVideo" controls muted playsinline></video>
+  <video id="sourceVideo" controls muted playsinline crossorigin="anonymous"></video>
 
-  <!-- Three.js renders here -->
   <canvas id="viewer"></canvas>
 
-  <!-- hls.js from CDN -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js"
-    crossorigin="anonymous"
-  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js" crossorigin="anonymous"></script>
 
-  <!-- Main app -->
   <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.181.2/build/three.module.js';
-
-    const Hls = window.Hls || null; // may be null if CDN fails
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.min.js";
 
     (async function main() {
-      const video       = document.getElementById("sourceVideo");
-      const canvas      = document.getElementById("viewer");
-      const urlInput    = document.getElementById("streamUrl");
-      const loadBtn     = document.getElementById("loadBtn");
+      const video = document.getElementById("sourceVideo");
+      const canvas = document.getElementById("viewer");
+      const urlInput = document.getElementById("streamUrl");
+      const loadBtn = document.getElementById("loadBtn");
       const dropOverlay = document.getElementById("dropOverlay");
-      const statusEl    = document.getElementById("status");
+      const statusEl = document.getElementById("status");
       const debugToggle = document.getElementById("debugToggle");
+
+      let Hls = window.Hls; // Re-check this in case it loads late, though script tag is blocking
 
       function setStatus(msg) {
         console.log("[STATUS]", msg);
@@ -225,22 +225,22 @@
       }
 
       video.crossOrigin = "anonymous";
+      video.playsInline = true;
 
       // Toggle debug video visibility
       debugToggle.addEventListener("change", () => {
         video.style.display = debugToggle.checked ? "block" : "none";
+        invalidate(); // ensure UI state is reflected
       });
 
       // --- Three.js + WebGL setup ---
-
-      let renderer;
-      let scene;
-      let camera;
+      let renderer, scene, camera;
       const radius = 500;
+
       let videoAspect = 16 / 9;
+      let invalidate = () => { }; // assigned after render-loop setup
 
       async function initRendererAndScene() {
-        // Pure WebGL renderer (no WebGPU)
         renderer = new THREE.WebGLRenderer({
           canvas,
           antialias: true,
@@ -248,22 +248,19 @@
         });
         setStatus("Using WebGL renderer.");
 
-        renderer.setPixelRatio(window.devicePixelRatio);
+        // Cap DPR to avoid huge fill-rate on high-DPI displays
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.NoToneMapping;
         renderer.toneMappingExposure = 1.0;
 
         scene = new THREE.Scene();
 
-        camera = new THREE.PerspectiveCamera(
-          75,
-          16 / 9,
-          0.1,
-          1100
-        );
+        camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.1, 1100);
         camera.target = new THREE.Vector3(0, 0, 0);
 
-        const sphereGeometry = new THREE.SphereGeometry(radius, 64, 40);
+        // Reasonable geometry complexity (avoid unnecessary CPU/GPU load)
+        const sphereGeometry = new THREE.SphereGeometry(radius, 48, 32);
         sphereGeometry.scale(-1, 1, 1); // view from inside
 
         const videoTexture = new THREE.VideoTexture(video);
@@ -294,31 +291,154 @@
 
         if (windowAspect > videoAspect) {
           height = window.innerHeight;
-          width  = height * videoAspect;
+          width = height * videoAspect;
         } else {
-          width  = window.innerWidth;
+          width = window.innerWidth;
           height = width / videoAspect;
         }
 
         renderer.setSize(width, height, false);
-        canvas.style.width  = width + "px";
+        canvas.style.width = width + "px";
         canvas.style.height = height + "px";
-        canvas.style.left   = ((window.innerWidth - width) / 2) + "px";
-        canvas.style.top    = ((window.innerHeight - height) / 2) + "px";
+        canvas.style.left = ((window.innerWidth - width) / 2) + "px";
+        canvas.style.top = ((window.innerHeight - height) / 2) + "px";
 
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
+
+        invalidate(); // critical in render-on-demand mode
       }
 
       window.addEventListener("resize", resizeRenderer);
 
-      await initRendererAndScene();
+      // --- Interaction & render loop (render-on-demand + video-frame pump) ---
+      let isUserInteracting = false;
+      let onPointerDownX = 0;
+      let onPointerDownY = 0;
+      let lon = 0;
+      let lat = 0;
+      let onPointerDownLon = 0;
+      let onPointerDownLat = 0;
+      let fov = 75;
+
+      let rafId = 0;
+      let videoPumpActive = false;
+
+      function updateCamera() {
+        lat = Math.max(-85, Math.min(85, lat));
+        const phi = THREE.MathUtils.degToRad(90 - lat);
+        const theta = THREE.MathUtils.degToRad(lon);
+
+        camera.target.x = radius * Math.sin(phi) * Math.cos(theta);
+        camera.target.y = radius * Math.cos(phi);
+        camera.target.z = radius * Math.sin(phi) * Math.sin(theta);
+        camera.lookAt(camera.target);
+      }
+
+      function renderOnce() {
+        rafId = 0;
+        updateCamera();
+        renderer.render(scene, camera);
+      }
+
+      invalidate = function invalidateImpl() {
+        if (!rafId) rafId = requestAnimationFrame(renderOnce);
+      };
+
+      function cancelPendingRender() {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+      }
+
+      function onPointerDown(event) {
+        isUserInteracting = true;
+        canvas.setPointerCapture?.(event.pointerId);
+
+        onPointerDownX = event.clientX;
+        onPointerDownY = event.clientY;
+        onPointerDownLon = lon;
+        onPointerDownLat = lat;
+
+        event.preventDefault();
+      }
+
+      function onPointerMove(event) {
+        if (!isUserInteracting) return;
+
+        const movementX = event.clientX - onPointerDownX;
+        const movementY = event.clientY - onPointerDownY;
+
+        lon = onPointerDownLon - movementX * 0.1;
+        lat = onPointerDownLat + movementY * 0.1;
+
+        invalidate();
+        event.preventDefault();
+      }
+
+      function onPointerUp(event) {
+        isUserInteracting = false;
+        canvas.releasePointerCapture?.(event.pointerId);
+        event.preventDefault();
+      }
+
+      function onWheel(event) {
+        const delta = event.deltaY || 0;
+        fov += delta * 0.02;
+        fov = Math.min(100, Math.max(40, fov));
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+        invalidate();
+        event.preventDefault();
+      }
+
+      canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
+      canvas.addEventListener("pointermove", onPointerMove, { passive: false });
+      canvas.addEventListener("pointerup", onPointerUp, { passive: false });
+      canvas.addEventListener("wheel", onWheel, { passive: false });
+
+      function startVideoPump() {
+        if (videoPumpActive) return;
+        videoPumpActive = true;
+
+        if (typeof video.requestVideoFrameCallback === "function") {
+          const onVideoFrame = () => {
+            if (!videoPumpActive) return;
+            invalidate();
+            video.requestVideoFrameCallback(onVideoFrame);
+          };
+          video.requestVideoFrameCallback(onVideoFrame);
+        } else {
+          const tick = () => {
+            if (!videoPumpActive) return;
+            invalidate();
+            requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }
+      }
+
+      function stopVideoPump() {
+        videoPumpActive = false;
+      }
+
+      video.addEventListener("playing", startVideoPump);
+      video.addEventListener("pause", stopVideoPump);
+      video.addEventListener("ended", stopVideoPump);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopVideoPump();
+          cancelPendingRender();
+        } else if (!video.paused && !video.ended) {
+          startVideoPump();
+        } else {
+          invalidate();
+        }
+      });
 
       // --- Resolve an input value into a real stream URL ---
-      // - Direct .m3u8 / video URLs are returned as-is
-      // - Local / blob / relative URLs are returned as-is
-      // - Generic https page URLs are fetched and scanned for .m3u8
-
       async function resolveToStreamUrl(input) {
         if (!input) return null;
         const raw = input.trim();
@@ -334,15 +454,12 @@
         const hasVideoExt = videoExtensions.some(ext => lower.includes(ext));
         const isM3U8 = lower.includes(".m3u8");
 
-        // Direct video/HLS URL
-        if (isM3U8 || hasVideoExt) {
-          return raw;
-        }
+        if (isM3U8 || hasVideoExt) return raw;
 
-        // Treat as HTML page; fetch and scan for .m3u8
+        // Treat as HTML page; fetch and scan for .m3u8 (may fail due to CORS)
         setStatus("Fetching page to search for .m3u8: " + raw);
         try {
-          const resp = await fetch(raw);
+          const resp = await fetch(raw, { mode: "cors" });
           if (!resp.ok) {
             setStatus("Failed to fetch page (status " + resp.status + ").");
             return null;
@@ -362,12 +479,35 @@
           }
         } catch (err) {
           console.error("Error fetching page:", err);
-          setStatus("Error fetching page: " + err.message);
+          setStatus("Error fetching page (likely CORS): " + err.message);
           return null;
         }
       }
 
       // --- HLS / video loading ---
+      let hlsInstance = null;
+      let lastObjectUrl = null;
+
+      function teardownPreviousMedia() {
+        stopVideoPump();
+
+        if (hlsInstance) {
+          hlsInstance.destroy();
+          hlsInstance = null;
+        }
+
+        try { video.pause(); } catch { }
+
+        video.removeAttribute("src"); // Important: remove src before loading new one
+        if (video.srcObject) video.srcObject = null;
+
+        video.load();
+
+        if (lastObjectUrl) {
+          try { URL.revokeObjectURL(lastObjectUrl); } catch { }
+          lastObjectUrl = null;
+        }
+      }
 
       function loadStream(url) {
         if (!url) {
@@ -375,59 +515,56 @@
           return;
         }
 
+        teardownPreviousMedia();
         setStatus("Loading: " + url);
 
-        if (video.srcObject) {
-          video.srcObject = null;
-        }
-        video.removeAttribute("src");
-
-        video.onerror = null;
-        video.oncanplay = null;
-
+        // Per-load metadata/error hooks
         video.addEventListener("error", () => {
           const code = video.error ? video.error.code : "unknown";
           setStatus("Video error: code " + code);
+          invalidate();
         }, { once: true });
 
         video.addEventListener("loadedmetadata", () => {
-          setStatus(
-            "Metadata: " +
-            video.videoWidth + "x" + video.videoHeight +
-            ", readyState=" + video.readyState
-          );
+          setStatus(`Metadata: ${video.videoWidth}x${video.videoHeight}, readyState=${video.readyState}`);
           updateVideoAspectFromMetadata();
+          invalidate();
         }, { once: true });
 
-        video.addEventListener("playing", () => {
-          setStatus("Video is playing. readyState=" + video.readyState);
-        });
+        // If this is a blob URL, remember it for cleanup later
+        if (url.startsWith("blob:")) lastObjectUrl = url;
 
         const lower = url.toLowerCase();
         const isM3U8 = lower.includes(".m3u8");
 
-        if (isM3U8 && Hls && Hls.isSupported() && url.startsWith("http")) {
-          const hls = new Hls({ enableWorker: true });
-          hls.loadSource(url);
-          hls.attachMedia(video);
+        // Refresh Hls reference from window just in case
+        Hls = window.Hls;
 
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Prefer hls.js where supported; otherwise use native HLS if available
+        if (isM3U8 && Hls && Hls.isSupported() && /^https?:\/\//i.test(url)) {
+          console.log("Using hls.js");
+          hlsInstance = new Hls({ enableWorker: true });
+          hlsInstance.loadSource(url);
+          hlsInstance.attachMedia(video);
+
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
             setStatus("HLS manifest parsed. Starting playback...");
             video.play().catch(err => {
               console.error("Play error:", err);
-              setStatus("Play() error (autoplay?): " + err.message);
+              setStatus("Play() error (autoplay/gesture?): " + err.message);
             });
           });
 
-          hls.on(Hls.Events.ERROR, (event, data) => {
+          hlsInstance.on(Hls.Events.ERROR, (event, data) => {
             console.error("HLS error:", data);
-            setStatus("HLS error: " + data.type + " - " + data.details);
+            if (data.fatal) {
+              setStatus("HLS Fatal error: " + data.type);
+            }
           });
-        } else if (isM3U8 && !Hls) {
-          setStatus("m3u8 URL provided, but hls.js is not available in this page.");
         } else if (isM3U8 && video.canPlayType("application/vnd.apple.mpegurl")) {
           setStatus("Using native HLS support.");
           video.src = url;
+          video.load();
           video.addEventListener("canplay", () => {
             video.play().catch(err => {
               console.error("Play error:", err);
@@ -435,8 +572,15 @@
             });
           }, { once: true });
         } else {
-          setStatus("Using native video playback (non-HLS or local file).");
+          // Standard video (MP4/WebM) or unsupported HLS environment
+          if (isM3U8 && !Hls && !video.canPlayType("application/vnd.apple.mpegurl")) {
+            setStatus("Warning: m3u8 URL provided but HLS playback is not supported.");
+          } else {
+            setStatus("Using native video playback.");
+          }
+
           video.src = url;
+          video.load();
           video.addEventListener("canplay", () => {
             video.play().catch(err => {
               console.error("Play error:", err);
@@ -461,177 +605,85 @@
       };
 
       loadBtn.addEventListener("click", urlInputHandler);
-      urlInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") urlInputHandler();
+
+      // --- Drag & Drop Implementation ---
+
+      // Prevent default drag behaviors
+      ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, preventDefaults, false);
       });
 
-      // --- Auto-load from ?src=... ---
-      const params = new URLSearchParams(window.location.search);
-      const initialSrc = params.get("src");
-      if (initialSrc) {
-        urlInput.value = initialSrc;
-        (async () => {
-          const resolved = await resolveToStreamUrl(initialSrc);
-          if (resolved) {
-            urlInput.value = resolved;
-            loadStream(resolved);
-          }
-        })();
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
       }
 
-      // --- Drag & drop (file + m3u8 extraction) ---
+      // Highlight drop zone
+      ;['dragenter', 'dragover'].forEach(eventName => {
+        document.body.addEventListener(eventName, highlight, false);
+      });
 
-      function showOverlay() {
-        dropOverlay.style.display = "flex";
+      ;['dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, unhighlight, false);
+      });
+
+      function highlight(e) {
+        dropOverlay.classList.add('active');
       }
-      function hideOverlay() {
-        dropOverlay.style.display = "none";
+
+      function unhighlight(e) {
+        dropOverlay.classList.remove('active');
       }
 
-      ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
-        window.addEventListener(eventName, e => {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-      });
+      // Handle dropped files
+      document.body.addEventListener('drop', handleDrop, false);
 
-      window.addEventListener("dragenter", () => {
-        showOverlay();
-        setStatus("File drag detected. Drop to load.");
-      });
-
-      window.addEventListener("dragleave", e => {
-        if (e.clientX <= 0 || e.clientY <= 0 ||
-            e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
-          hideOverlay();
-          setStatus("Ready.");
-        }
-      });
-
-      window.addEventListener("drop", e => {
-        hideOverlay();
+      async function handleDrop(e) {
         const dt = e.dataTransfer;
-        if (!dt || !dt.files || dt.files.length === 0) return;
+        const files = dt.files;
 
-        const file = dt.files[0];
-        setStatus("Dropped file: " + file.name + " (" + file.type + ")");
+        if (files.length > 0) {
+          const file = files[0];
+          setStatus("File dropped: " + file.name + " (" + file.type + ")");
 
-        if (file.type.startsWith("video/")) {
-          const objectUrl = URL.createObjectURL(file);
-          urlInput.value = objectUrl;
-          loadStream(objectUrl);
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          const text = reader.result;
-          if (typeof text !== "string") {
-            setStatus("Failed to read file as text.");
-            return;
+          // If it's a video file, play directly via Blob URL
+          if (file.type.startsWith('video/')) {
+            const blobUrl = URL.createObjectURL(file);
+            urlInput.value = blobUrl; // show blob url for debug
+            loadStream(blobUrl);
           }
-          const m3u8Regex = /https?:\/\/[^\s"'\\<>]+?\.m3u8/ig;
-          const match = m3u8Regex.exec(text);
+          // If it's text (m3u8, txt, etc.), try to read content
+          else if (file.name.endsWith('.m3u8') || file.type.startsWith('text/') || file.name.endsWith('.har')) {
+            const text = await file.text();
+            // Simple regex to find a URL inside the text
+            const m3u8Regex = /https?:\/\/[^\s"'\\<>]+?\.m3u8/i;
+            const match = text.match(m3u8Regex);
 
-          if (match && match[0]) {
-            const foundUrl = match[0];
-            setStatus("Found m3u8 URL in file: " + foundUrl);
-            urlInput.value = foundUrl;
-            loadStream(foundUrl);
-          } else {
-            setStatus("No http(s)://...m3u8 URL found in dropped file.");
-            alert("No http(s)://...m3u8 URL found in this file.");
+            if (match) {
+              const foundUrl = match[0];
+              setStatus("Found stream URL in file: " + foundUrl);
+              urlInput.value = foundUrl;
+              loadStream(foundUrl);
+            } else {
+              // If .m3u8 file itself, maybe we can play the blob? 
+              // (Only works if player supports parsing m3u8 blob, hls.js usually needs http)
+              if (file.name.endsWith('.m3u8')) {
+                setStatus("Local m3u8 file dropped. Note: hls.js usually requires HTTP(S) URLs, not local files.");
+              } else {
+                setStatus("No https://...m3u8 URL found in dropped text file.");
+              }
+            }
           }
-        };
-        reader.onerror = () => {
-          setStatus("Error reading dropped file.");
-        };
-        reader.readAsText(file);
-      });
-
-      // --- Interaction & render loop ---
-
-      let isUserInteracting = false;
-      let onPointerDownMouseX = 0;
-      let onPointerDownMouseY = 0;
-      let lon = 0;
-      let lat = 0;
-      let onPointerDownLon = 0;
-      let onPointerDownLat = 0;
-      let fov = camera.fov;
-
-      function getClientXY(event) {
-        if (event.touches && event.touches[0]) {
-          return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+          else {
+            setStatus("Unsupported file type dropped: " + file.type);
+          }
         }
-        return { x: event.clientX, y: event.clientY };
       }
 
-      function onPointerDown(event) {
-        isUserInteracting = true;
-        const { x, y } = getClientXY(event);
-        onPointerDownMouseX = x;
-        onPointerDownMouseY = y;
-        onPointerDownLon = lon;
-        onPointerDownLat = lat;
-
-        window.addEventListener("pointermove", onPointerMove);
-        window.addEventListener("pointerup", onPointerUp);
-        window.addEventListener("touchmove", onPointerMove, { passive: false });
-        window.addEventListener("touchend", onPointerUp);
-
-        event.preventDefault?.();
-      }
-
-      function onPointerMove(event) {
-        if (!isUserInteracting) return;
-        const { x, y } = getClientXY(event);
-        const movementX = x - onPointerDownMouseX;
-        const movementY = y - onPointerDownMouseY;
-        lon = onPointerDownLon - movementX * 0.1;
-        lat = onPointerDownLat + movementY * 0.1;
-        event.preventDefault?.();
-      }
-
-      function onPointerUp(event) {
-        isUserInteracting = false;
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", onPointerUp);
-        window.removeEventListener("touchmove", onPointerMove);
-        window.removeEventListener("touchend", onPointerUp);
-        event?.preventDefault?.();
-      }
-
-      function onMouseWheel(event) {
-        const delta = event.deltaY || event.wheelDelta;
-        fov += delta * 0.02;
-        fov = Math.min(100, Math.max(40, fov));
-        camera.fov = fov;
-        camera.updateProjectionMatrix();
-      }
-
-      canvas.addEventListener("pointerdown", onPointerDown);
-      canvas.addEventListener("touchstart", onPointerDown, { passive: false });
-      canvas.addEventListener("wheel", onMouseWheel, { passive: true });
-
-      function animate() {
-        requestAnimationFrame(animate);
-
-        lat = Math.max(-85, Math.min(85, lat));
-        const phi = THREE.MathUtils.degToRad(90 - lat);
-        const theta = THREE.MathUtils.degToRad(lon);
-
-        camera.target.x = radius * Math.sin(phi) * Math.cos(theta);
-        camera.target.y = radius * Math.cos(phi);
-        camera.target.z = radius * Math.sin(phi) * Math.sin(theta);
-        camera.lookAt(camera.target);
-
-        renderer.render(scene, camera);
-      }
-
-      animate();
+      // Initialize Three.js
+      await initRendererAndScene();
     })();
   </script>
 </body>
-</html>
 
+</html>
