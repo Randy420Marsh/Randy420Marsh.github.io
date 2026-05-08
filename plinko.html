@@ -261,15 +261,15 @@ const display = b.multiplier >= 1000 ? (b.multiplier/1000)+'K' : b.multiplier;
 ctx.fillText(display, b.position.x, b.position.y + 4);
         });
 
-// blue balls
+// ball colors
 Composite.allBodies(engine.world).forEach(body => {
 if (body.label === 'ball') {
 const radius = body.circleRadius || 7.8;
-ctx.fillStyle = '#00aaff';
+ctx.fillStyle = '#7d7c7c';
 ctx.beginPath();
 ctx.arc(body.position.x, body.position.y, radius, 0, Math.PI * 2);
 ctx.fill();
-ctx.strokeStyle = '#66ccff';
+ctx.strokeStyle = '#7d7c7c';
 ctx.lineWidth = 2.5;
 ctx.beginPath();
 ctx.arc(body.position.x, body.position.y, radius, 0, Math.PI * 2);
