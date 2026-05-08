@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Home</title>
+  <title>Home | Randy420Marsh.github.io</title>
   <style>
     html,
     body {
@@ -16,11 +16,69 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    #globalNav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+      background: rgba(0, 0, 0, 0.85);
+      border-bottom: 1px solid #222;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    #globalNav .logo {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: #fff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #globalNav .nav-links {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      align-items: center;
+    }
+
+    #globalNav .navBtn {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #111;
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    #globalNav .navBtn:hover {
+      background: #222;
+      border-color: #00e701;
+    }
+
+    #globalNav .navBtn:active {
+      transform: translateY(1px);
+    }
+
     .wrap {
-      min-height: 100%;
+      min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 48px 16px;
+      padding: 100px 16px 48px;
       box-sizing: border-box;
       text-align: center;
     }
@@ -29,6 +87,7 @@
       font-weight: 300;
       margin: 0 0 18px 0;
       letter-spacing: 0.2px;
+      font-size: 2.8rem;
     }
 
     .btnRow {
@@ -63,6 +122,7 @@
       margin-top: 18px;
       color: #aaa;
       max-width: 720px;
+      font-size: 14px;
     }
 
     code {
@@ -72,26 +132,49 @@
       padding: 1px 6px;
       border-radius: 6px;
     }
+
+    @media (max-width: 768px) {
+      #globalNav {
+        padding: 0 16px;
+        height: 56px;
+      }
+      #globalNav .navBtn {
+        padding: 8px 14px;
+        font-size: 14px;
+      }
+      h1 {
+        font-size: 2.2rem;
+      }
+    }
   </style>
 </head>
 
 <body>
+  <!-- Top Navigation Bar -->
+  <div id="globalNav">
+    <a href="./index.html" class="logo">🤡 Randy420Marsh.github.io</a>
+    
+    <div class="nav-links">
+      <a class="navBtn" href="./index.html">🏠 Home</a>
+      <a class="navBtn" href="https://github.com/Randy420Marsh" target="_blank">🐙 GitHub</a>
+      <a class="navBtn" href="./single-image.html">🖼️ Comfy Prompt Extractor</a>
+      <a class="navBtn" href="./plinko.html">🎰 Plinko</a>
+      <a class="navBtn" href="./360viewer.html">🌐 360 Video Player</a>
+    </div>
+  </div>
+
   <div class="wrap">
     <div>
-      <h1>Randy420Marsh.github.io</h1>
+      <h1>Welcome to Randy420Marsh.github.io</h1>
+      <p style="color:#aaa; max-width:600px; margin:0 auto 30px;">Your hub for fun tools: AI image metadata inspector, Plinko Extreme, and 360° video player.</p>
+      
       <div class="btnRow">
-        <a class="navBtn" href="./index.html">Home</a>
-        <a class="navBtn" href="https://github.com/Randy420Marsh">Github</a>
+        <!-- Additional buttons kept for legacy / mobile -->
       </div>
-      <a class="navBtn" href="./single-image.html">Comfy/A1111 Prompt Extractor</a>
-      <a class="navBtn" href="./plinko.html">Plinko</a>
-      <div class="btnRow">
-        <!-- 360 Video Player and new Plinko button now in the same row for a clean "similar menu" -->
-        <a class="navBtn" href="./360viewer.html">360 Video Player</a>
-      </div>
+      
       <div class="hint">
-        Tip: you can deep-link a stream using
-        <code>360viewer.html?src=YOUR_URL</code>.
+        Tip: you can deep-link a stream using <code>360viewer.html?src=YOUR_URL</code>.<br>
+        All tools are fully offline &amp; client-side.
       </div>
     </div>
   </div>

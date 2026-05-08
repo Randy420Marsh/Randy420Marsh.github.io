@@ -150,6 +150,19 @@
       background: rgba(0, 0, 0, 0.75);
       border-bottom: 1px solid #222;
       backdrop-filter: blur(6px);
+      justify-content: space-between;
+    }
+
+    #globalNav .logo {
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    #globalNav .nav-links {
+      display: flex;
+      gap: 8px;
     }
 
     #globalNav .navBtn {
@@ -176,9 +189,17 @@
 </head>
 
 <body>
+  <!-- Top Navigation Bar -->
   <div id="globalNav">
-    <a href="./index.html" class="navBtn">Home</a>
-    <a href="./360viewer.html" class="navBtn">360 Video Player</a>
+    <a href="./index.html" class="logo">🤡 Randy420Marsh.github.io</a>
+    
+    <div class="nav-links">
+      <a class="navBtn" href="./index.html">🏠 Home</a>
+      <a class="navBtn" href="https://github.com/Randy420Marsh" target="_blank">🐙 GitHub</a>
+      <a class="navBtn" href="./single-image.html">🖼️ Comfy Prompt Extractor</a>
+      <a class="navBtn" href="./plinko.html">🎰 Plinko</a>
+      <a class="navBtn" href="./360viewer.html">🌐 360 Video Player</a>
+    </div>
   </div>
 
   <div id="ui">

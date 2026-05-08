@@ -31,6 +31,42 @@ body, html {
     color: var(--text);
     overflow: hidden;
 }
+
+/* Navigation Styles */
+#globalNav {
+    height: 50px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    position: relative;
+    z-index: 1000;
+}
+#globalNav .logo {
+    font-weight: bold;
+    text-decoration: none;
+    color: var(--text);
+}
+.nav-links {
+    display: flex;
+    gap: 10px;
+}
+.navBtn {
+    text-decoration: none;
+    font-size: 0.8rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    background: var(--bg);
+}
+.navBtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 #dropOverlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(59, 130, 246, 0.2);
@@ -40,7 +76,7 @@ body, html {
     font-size: 2rem; font-weight: bold; color: var(--accent);
     backdrop-filter: blur(4px);
 }
-.app-container { display: flex; height: 100vh; width: 100vw; }
+.app-container { display: flex; height: calc(100vh - 50px); width: 100vw; }
 #welcomeZone {
     flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
     border: 2px dashed var(--border); margin: 2rem; border-radius: 20px;
@@ -93,12 +129,26 @@ body, html {
 </style>
 </head>
 <body data-theme="dark">
+
+  <!-- Top Navigation Bar -->
+  <div id="globalNav">
+    <a href="./index.html" class="logo">🤡 Randy420Marsh.github.io</a>
+    
+    <div class="nav-links">
+      <a class="navBtn" href="./index.html">🏠 Home</a>
+      <a class="navBtn" href="https://github.com/Randy420Marsh" target="_blank">🐙 GitHub</a>
+      <a class="navBtn" href="./single-image.html">🖼️ Comfy Prompt Extractor</a>
+      <a class="navBtn" href="./plinko.html">🎰 Plinko</a>
+      <a class="navBtn" href="./360viewer.html">🌐 360 Video Player</a>
+    </div>
+  </div>
+
 <div id="dropOverlay">DROP IMAGE TO INSPECT</div>
 <div class="app-container">
     <div id="welcomeZone" onclick="document.getElementById('fileInput').click()">
         <div style="font-size: 4rem; margin-bottom: 1rem;">🖼️</div>
         <h2 style="margin:0;">Drop AI Image Here</h2>
-        <p style="color: var(--text-muted);">PNG · JPEG · WebP (ComfyUI / A1111 / Automatic1111)</p>
+        <p style="color: var(--text-muted);">PNG · JPEG · WebP (ComfyUI / Automatic1111)</p>
         <button class="btn-ui" style="margin-top: 1rem; font-size: 0.9rem; padding: 10px 20px;">Load Image</button>
     </div>
     <input type="file" id="fileInput" hidden accept="image/*">
@@ -360,7 +410,7 @@ function parseExifDir(buffer, tiffStart) {
                     const contentLen = Math.max(0, count - 8);
                     const content = new Uint8Array(buffer, vo + 8, contentLen);
                     const isUnicode = enc.startsWith('UNICODE');
-                    const charSet = isUnicode ? (isLittle ? 'utf-16le' : 'utf-16be') : 'utf-8';
+                    const charSet = isUnicode ? (isLittle ? 'utf-16le' : 'utf-16be') : 'utf-16be';
                     metadata['parameters'] = new TextDecoder(charSet, { fatal: false })
                         .decode(content).replace(/\0/g, '').trim();
                 } catch (err) {
@@ -624,3 +674,4 @@ async function handleFile(file) {
 </script>
 </body>
 </html>
+
